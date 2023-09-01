@@ -1,43 +1,60 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:google_sign_in/google_sign_in.dart';
+import 'package:moneymanager/auth.dart';
 
-Future<List<Map<String, dynamic>>> fetchExpensesInMonth(
+Future<List<Map<String, dynamic>>> fetchUserTransactionsInMonth(
     int targetYear, int targetMonth) async {
-  List<Map<String, dynamic>> expensesList = [];
+  List<Map<String, dynamic>> transactionsList = [];
 
   try {
     DateTime startOfMonth = DateTime(targetYear, targetMonth, 1);
     DateTime endOfMonth =
         DateTime(targetYear, targetMonth + 1, 1).subtract(Duration(days: 1));
 
-    QuerySnapshot querySnapshot = await FirebaseFirestore.instance
-        .collection('expenses')
-        .where('transactionDate', isGreaterThanOrEqualTo: startOfMonth)
-        .where('transactionDate', isLessThanOrEqualTo: endOfMonth)
+    // Fetch the user document
+    DocumentSnapshot userSnapshot = await FirebaseFirestore.instance
+        .collection('users')
+        .doc(Auth().currentUser!.email)
         .get();
 
-    for (QueryDocumentSnapshot expenseDoc in querySnapshot.docs) {
-      Map<String, dynamic> expenseData =
-          expenseDoc.data() as Map<String, dynamic>;
+    // Check if the user document exists
+    if (userSnapshot.exists) {
+      // Get a reference to the user's 'transactions' subcollection
+      CollectionReference transactionsCollection =
+          userSnapshot.reference.collection('transactions');
 
-      // Fetch the 'items' subcollection within the expense document
-      QuerySnapshot itemsSnapshot =
-          await expenseDoc.reference.collection('items').get();
-      List<Map<String, dynamic>> itemsList = itemsSnapshot.docs
-          .map((itemDoc) => itemDoc.data() as Map<String, dynamic>)
-          .toList();
+      // Fetch transactions from the 'transactions' subcollection
+      QuerySnapshot transactionsSnapshot = await transactionsCollection
+          .where('transactionDate', isGreaterThanOrEqualTo: startOfMonth)
+          .where('transactionDate', isLessThanOrEqualTo: endOfMonth)
+          .get();
 
-      // Add the 'items' subcollection data to the expense data
-      expenseData['items'] = itemsList;
+      // Loop through the fetched transactions
+      for (QueryDocumentSnapshot transactionDoc in transactionsSnapshot.docs) {
+        Map<String, dynamic> transactionData =
+            transactionDoc.data() as Map<String, dynamic>;
 
-      expensesList.add(expenseData);
+        // Get a reference to the 'items' subcollection within the transaction
+        CollectionReference itemsCollection =
+            transactionDoc.reference.collection('items');
+
+        // Fetch items from the 'items' subcollection
+        QuerySnapshot itemsSnapshot = await itemsCollection.get();
+        List<Map<String, dynamic>> itemsList = itemsSnapshot.docs
+            .map((itemDoc) => itemDoc.data() as Map<String, dynamic>)
+            .toList();
+
+        // Add the 'items' subcollection data to the transaction data
+        transactionData['items'] = itemsList;
+
+        transactionsList.add(transactionData);
+      }
     }
   } catch (error) {
-    print("Error fetching expenses: $error");
+    print("Error fetching transactions: $error");
   }
 
-  // print(expensesList);
-  return expensesList;
+  return transactionsList;
 }
 
 Future<void> saveUser(String email, String name, String profilePic) async {

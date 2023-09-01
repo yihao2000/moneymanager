@@ -30,22 +30,23 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
-  late Future<List<Map<String, dynamic>>> expensesFuture;
+  late Future<List<Map<String, dynamic>>> transactionsFuture;
 
   void _openDrawer() {
     _scaffoldKey.currentState?.openDrawer();
   }
 
-  void _printExpensesWithTesting() async {
-    expensesFuture = fetchExpensesInMonth(globals.now.year, globals.now.month);
-    List<Map<String, dynamic>> expensesData = await expensesFuture;
-    print(expensesData);
+  void _printTransactionsWithTesting() async {
+    transactionsFuture =
+        fetchUserTransactionsInMonth(globals.now.year, globals.now.month);
+    List<Map<String, dynamic>> transactionsData = await transactionsFuture;
+    print(transactionsData);
   }
 
   @override
   void initState() {
     super.initState();
-    _printExpensesWithTesting(); // Call the function to initialize expenses and print it
+    _printTransactionsWithTesting();
   }
 
   void _decrementDate() {
@@ -57,21 +58,21 @@ class _MyHomePageState extends State<MyHomePage> {
   void _incrementDate() {
     setState(() {
       globals.incrementdate(1);
-      _printExpensesWithTesting();
+      _printTransactionsWithTesting();
     });
   }
 
   void _decrementMonth() {
     setState(() {
       globals.decrementMonth(1);
-      _printExpensesWithTesting();
+      _printTransactionsWithTesting();
     });
   }
 
   void _incrementMonth() {
     setState(() {
       globals.incrementMonth(1);
-      _printExpensesWithTesting();
+      _printTransactionsWithTesting();
     });
   }
 
@@ -155,7 +156,7 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: SingleChildScrollView(
         child: FutureBuilder(
-          future: expensesFuture,
+          future: transactionsFuture,
           builder: (ctx, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               // While the data is being fetched, show a loading indicator
@@ -164,20 +165,16 @@ class _MyHomePageState extends State<MyHomePage> {
               // If there's an error, display an error message
               return Text('Error: ${snapshot.error}');
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              // If there's no data, display a message indicating no expenses
-              return Text('No expenses data available.');
+              return Text('No transactions data available.');
             } else {
-              // If data is loaded successfully, display the expenses
-              List<Map<String, dynamic>> expensesData = snapshot.data!;
-              // Use expensesData to build your UI components
-              // For example, you can use ListView.builder to display a list of expenses
+              List<Map<String, dynamic>> transactionsData = snapshot.data!;
 
               final initialTotal = {"Income": 0.0, "Expense": 0.0};
 
-              final totals = expensesData.fold<Map<String, double>>(
+              final totals = transactionsData.fold<Map<String, double>>(
                 initialTotal,
-                (Map<String, double> acc, expense) {
-                  for (var item in expense["items"]) {
+                (Map<String, double> acc, transaction) {
+                  for (var item in transaction["items"]) {
                     if (item["type"] == "Income") {
                       acc["Income"] =
                           (acc["Income"] ?? 0.0) + (item["amount"] ?? 0.0);
@@ -268,9 +265,9 @@ class _MyHomePageState extends State<MyHomePage> {
                     padding: EdgeInsets.only(left: 10, right: 10),
                     shrinkWrap: true,
                     physics: ClampingScrollPhysics(),
-                    itemCount: expensesData.length,
+                    itemCount: transactionsData.length,
                     itemBuilder: (context, index) {
-                      List<dynamic> items = expensesData[index]["items"];
+                      List<dynamic> items = transactionsData[index]["items"];
 
                       double monthlyIncomeTotal = 0;
                       double monthlyExpenseTotal = 0;
@@ -293,7 +290,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                 children: [
                                   Text(
                                       globals
-                                          .getDate(expensesData[index]
+                                          .getDate(transactionsData[index]
                                               ["transactionDate"] as Timestamp)
                                           .toString(),
                                       style: TextStyle(
@@ -308,7 +305,7 @@ class _MyHomePageState extends State<MyHomePage> {
                                     padding: EdgeInsets.only(
                                         left: 10, right: 10, top: 3, bottom: 3),
                                     child: Text(globals.getWeekday(
-                                        expensesData[index]
+                                        transactionsData[index]
                                             ["transactionDate"])),
                                   )
                                 ],

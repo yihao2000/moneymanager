@@ -6,7 +6,6 @@ class ThemeProvider extends ChangeNotifier {
   bool get isDarkMode => themeMode == ThemeMode.dark;
 
   void toggleTheme(bool isOn) {
-    print("Ngeganti");
     themeMode = isOn ? ThemeMode.dark : ThemeMode.light;
     notifyListeners();
   }
@@ -16,10 +15,12 @@ class MyThemes {
   static final darkTheme = ThemeData(
     scaffoldBackgroundColor: Colors.grey.shade900,
     colorScheme: ColorScheme.dark(),
+    primaryColor: Colors.white,
   );
 
   static final lightTheme = ThemeData(
     scaffoldBackgroundColor: Colors.white,
     colorScheme: ColorScheme.light(),
+    primaryColor: Colors.black,
   );
 }
