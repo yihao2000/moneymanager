@@ -7,6 +7,18 @@ DateTime CURRENT = DateTime.now();
 DateTime now = CURRENT;
 var formatter = DateFormat('MMM yyyy');
 
+//Default Accounts for User
+List userAccounts = ["Cash", "Accounts", "Card"];
+List userCategories = ["Allowance", "Salary", "Petty Cash", "Bonus", "Other"];
+
+String formatSpecifiedDate(DateTime dateTime) {
+  print(dateTime.toString());
+  var currFormatter = DateFormat('dd-MMM-yyyy');
+  String formattedDate = currFormatter.format(dateTime);
+  print(formattedDate);
+  return formattedDate;
+}
+
 String formattedDate() {
   String formattedDate = formatter.format(now);
   return formattedDate;

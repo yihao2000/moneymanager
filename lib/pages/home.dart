@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:moneymanager/pages/addtransaction.dart';
 import 'package:moneymanager/queries.dart';
 import 'package:moneymanager/widget/change_theme_button.dart';
+import 'package:moneymanager/widget/custom_drawer_widget.dart';
 import '../globals.dart' as globals;
 import '../auth.dart';
 
@@ -20,12 +21,12 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({Key? key, required this.title});
+  const MyHomePage({Key? key, required this.title}) : super(key: key);
 
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
@@ -36,17 +37,15 @@ class _MyHomePageState extends State<MyHomePage> {
     _scaffoldKey.currentState?.openDrawer();
   }
 
-  void _printTransactionsWithTesting() async {
+  void _fetchTransactions() async {
     transactionsFuture =
         fetchUserTransactionsInMonth(globals.now.year, globals.now.month);
-    List<Map<String, dynamic>> transactionsData = await transactionsFuture;
-    print(transactionsData);
   }
 
   @override
   void initState() {
     super.initState();
-    _printTransactionsWithTesting();
+    _fetchTransactions();
   }
 
   void _decrementDate() {
@@ -58,26 +57,27 @@ class _MyHomePageState extends State<MyHomePage> {
   void _incrementDate() {
     setState(() {
       globals.incrementdate(1);
-      _printTransactionsWithTesting();
+      _fetchTransactions();
     });
   }
 
   void _decrementMonth() {
     setState(() {
       globals.decrementMonth(1);
-      _printTransactionsWithTesting();
+      _fetchTransactions();
     });
   }
 
   void _incrementMonth() {
     setState(() {
       globals.incrementMonth(1);
-      _printTransactionsWithTesting();
+      _fetchTransactions();
     });
   }
 
-  Future<void> _signOut() async {
-    await Auth().signOut();
+  void refreshPage() {
+    _fetchTransactions();
+    // Add any other logic you want to run when refreshing the page
   }
 
   @override
@@ -89,21 +89,17 @@ class _MyHomePageState extends State<MyHomePage> {
         child: AppBar(
           titleSpacing: 0,
           leading: IconButton(
-            icon: Icon(Icons.menu_rounded), // Add the menu icon
-            onPressed: _openDrawer, // Open the drawer on icon press
+            icon: Icon(Icons.menu_rounded),
+            onPressed: _openDrawer,
           ),
           title: Align(
-            alignment: Alignment.centerRight, // Align to the right
+            alignment: Alignment.centerRight,
             child: Row(
-              mainAxisAlignment:
-                  MainAxisAlignment.end, // Align children to the end (right)
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 IconButton(
                   icon: Icon(Icons.arrow_back_ios),
-                  onPressed: () {
-                    // Handle arrow button press
-                    _decrementMonth();
-                  },
+                  onPressed: _decrementMonth,
                 ),
                 Text(
                   globals.formattedDate(),
@@ -111,10 +107,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 ),
                 IconButton(
                   icon: Icon(Icons.arrow_forward_ios),
-                  onPressed: () {
-                    // Handle arrow button press
-                    _incrementMonth();
-                  },
+                  onPressed: _incrementMonth,
                 ),
               ],
             ),
@@ -122,47 +115,14 @@ class _MyHomePageState extends State<MyHomePage> {
           toolbarHeight: 60.0,
         ),
       ),
-      drawer: Drawer(
-        // Define your sidebar content here
-        child: ListView(
-          padding: EdgeInsets.zero,
-          children: <Widget>[
-            DrawerHeader(
-              decoration: BoxDecoration(
-                color: Colors.blue,
-              ),
-              child: Text(
-                'Sidebar Header',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                ),
-              ),
-            ),
-            ListTile(
-              title: ChangeThemeButtonWidget(),
-            ),
-            ListTile(
-              title: Text('Sidebar Item 2'),
-              onTap: () {
-                // Handle sidebar item press
-              },
-            ),
-            ElevatedButton(onPressed: _signOut, child: Text('Sign out')),
-
-            // Add more sidebar items as needed
-          ],
-        ),
-      ),
+      drawer: CustomDrawer(),
       body: SingleChildScrollView(
         child: FutureBuilder(
           future: transactionsFuture,
           builder: (ctx, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              // While the data is being fetched, show a loading indicator
               return Text('Loading');
             } else if (snapshot.hasError) {
-              // If there's an error, display an error message
               return Text('Error: ${snapshot.error}');
             } else if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return Text('No transactions data available.');
@@ -205,12 +165,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           fit: BoxFit.scaleDown,
                           child: Column(
                             children: [
-                              Text(
-                                "Income",
-                              ),
-                              SizedBox(
-                                height: 2,
-                              ),
+                              Text("Income"),
+                              SizedBox(height: 2),
                               Text(
                                 totalIncome.toString(),
                                 style: TextStyle(color: Colors.blue),
@@ -225,12 +181,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           fit: BoxFit.scaleDown,
                           child: Column(
                             children: [
-                              Text(
-                                "Expense",
-                              ),
-                              SizedBox(
-                                height: 2,
-                              ),
+                              Text("Expense"),
+                              SizedBox(height: 2),
                               Text(
                                 totalExpense.toString(),
                                 style: TextStyle(color: Colors.red),
@@ -245,12 +197,8 @@ class _MyHomePageState extends State<MyHomePage> {
                           fit: BoxFit.scaleDown,
                           child: Column(
                             children: [
-                              Text(
-                                "Total",
-                              ),
-                              SizedBox(
-                                height: 2,
-                              ),
+                              Text("Total"),
+                              SizedBox(height: 2),
                               Text(
                                 total.toString(),
                               )
@@ -272,9 +220,7 @@ class _MyHomePageState extends State<MyHomePage> {
                       double monthlyIncomeTotal = 0;
                       double monthlyExpenseTotal = 0;
 
-                      // Calculate the total sum of transactions for this day
                       for (var item in items) {
-                        print(item);
                         if (item["type"] == "Income") {
                           monthlyIncomeTotal += item["amount"];
                         } else if (item["type"] == "Expense") {
@@ -344,6 +290,13 @@ class _MyHomePageState extends State<MyHomePage> {
                           Divider(),
                           Column(
                             children: items.map<Widget>((e) {
+                              Color type = Theme.of(context).primaryColor;
+
+                              if (e["type"] == "Income") {
+                                type = Colors.blue;
+                              } else if (e["type"] == "Expense") {
+                                type = Colors.red;
+                              }
                               return Padding(
                                 padding: EdgeInsets.only(top: 10, bottom: 10),
                                 child: Row(
@@ -360,10 +313,22 @@ class _MyHomePageState extends State<MyHomePage> {
                                     Container(
                                       width: MediaQuery.of(context).size.width *
                                           0.5,
-                                      child: Text(e["type"]),
+                                      child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(e["account"]),
+                                            Text(
+                                              e["note"],
+                                              style: TextStyle(
+                                                color: Colors.grey,
+                                              ),
+                                            )
+                                          ]),
                                     ),
                                     Container(
-                                      child: Text(e["amount"].toString()),
+                                      child: Text(e["amount"].toString(),
+                                          style: TextStyle(color: type)),
                                     ),
                                   ],
                                 ),
@@ -386,7 +351,10 @@ class _MyHomePageState extends State<MyHomePage> {
       floatingActionButton: FloatingActionButton(
         onPressed: () {
           Navigator.of(context)
-              .push(MaterialPageRoute(builder: (context) => Addtransaction()));
+              .push(MaterialPageRoute(builder: (context) => Addtransaction()))
+              .then((_) {
+            refreshPage(); // Call the refreshPage method when returning from another page
+          });
         },
         tooltip: 'Increment',
         child: const Icon(Icons.add),
